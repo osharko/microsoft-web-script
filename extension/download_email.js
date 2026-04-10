@@ -163,9 +163,7 @@ function showConfigModal(folders) {
       return `<span style="color:#ffaa00;">${zipCount} file ZIP</span>`;
     };
 
-    const calcStep = (total) => Math.max(Math.round(total * 0.05), 1);
     const initMax = Math.max(folders[0]?.count || 100, 1);
-    const initStep = calcStep(initMax);
 
     modal.innerHTML = `
       <h2 style="margin:0 0 20px;color:#00ff88;font-size:18px;">Outlook Email Downloader</h2>
@@ -180,7 +178,7 @@ function showConfigModal(folders) {
       <label style="display:block;margin-bottom:6px;color:#aaa;">
         Email per ZIP: <span id="emlSliderValue" style="color:#00ff88;">${DEFAULT_EMAILS_PER_ZIP}</span>
       </label>
-      <input type="range" id="emlSlider" min="1" max="${initMax}" step="${initStep}" value="${Math.min(DEFAULT_EMAILS_PER_ZIP, initMax)}"
+      <input type="range" id="emlSlider" min="1" max="${initMax}" step="1" value="${Math.min(DEFAULT_EMAILS_PER_ZIP, initMax)}"
         style="width:100%;margin-bottom:4px;accent-color:#00ff88;">
       <div style="display:flex;justify-content:space-between;color:#666;font-size:11px;margin-bottom:16px;">
         <span>1</span><span id="emlSliderMax">${initMax}</span>
@@ -219,9 +217,7 @@ function showConfigModal(folders) {
     const updateSliderMax = () => {
       const folder = folders[folderSelect.value];
       const newMax = Math.max(folder.count, 1);
-      const newStep = calcStep(newMax);
       slider.max = newMax;
-      slider.step = newStep;
       sliderMaxLabel.textContent = newMax;
       if (parseInt(slider.value) > newMax) {
         slider.value = newMax;
