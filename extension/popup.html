@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body {
+      width: 280px;
+      background: #1a1a2e;
+      color: #e0e0e0;
+      font-family: monospace;
+      font-size: 13px;
+      margin: 0;
+      padding: 16px;
+    }
+    h2 {
+      color: #00ff88;
+      font-size: 15px;
+      margin: 0 0 16px;
+    }
+    button {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 8px;
+      border-radius: 8px;
+      border: 1px solid #333;
+      background: #0d0d1a;
+      color: #e0e0e0;
+      font-family: monospace;
+      font-size: 13px;
+      cursor: pointer;
+      text-align: left;
+    }
+    button:hover {
+      border-color: #00ff88;
+      color: #00ff88;
+    }
+    .status {
+      color: #666;
+      font-size: 11px;
+      margin-top: 8px;
+      min-height: 14px;
+    }
+  </style>
+</head>
+<body>
+  <h2>Microsoft Web Scripts</h2>
+  <button id="btnEmail">Download Email (Outlook)</button>
+  <button id="btnTranscript">Download Trascrizione (Stream)</button>
+  <div class="status" id="status"></div>
+  <script src="popup.js"></script>
+</body>
+</html>

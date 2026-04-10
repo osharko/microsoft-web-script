@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "Microsoft Web Scripts",
+  "version": "1.0",
+  "description": "Scarica email da Outlook Web e trascrizioni da Microsoft Stream",
+  "permissions": ["activeTab", "scripting"],
+  "icons": {
+    "48": "icon48.png",
+    "128": "icon128.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "icon48.png"
+  }
+}
