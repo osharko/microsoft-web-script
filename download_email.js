@@ -154,6 +154,12 @@ function showConfigModal(folders) {
 
     const DEFAULT_EMAILS_PER_ZIP = 100;
 
+    const calcPreflight = (totalEmails, perZip) => {
+      const zipCount = Math.ceil(totalEmails / perZip);
+      if (zipCount <= 1) return `<span style="color:#00ff88;">1 file ZIP</span>`;
+      return `<span style="color:#ffaa00;">${zipCount} file ZIP</span>`;
+    };
+
     modal.innerHTML = `
       <h2 style="margin:0 0 20px;color:#00ff88;font-size:18px;">Outlook Email Downloader</h2>
 
@@ -169,8 +175,12 @@ function showConfigModal(folders) {
       </label>
       <input type="range" id="emlSlider" min="50" max="5000" step="50" value="${DEFAULT_EMAILS_PER_ZIP}"
         style="width:100%;margin-bottom:4px;accent-color:#00ff88;">
-      <div style="display:flex;justify-content:space-between;color:#666;font-size:11px;margin-bottom:20px;">
+      <div style="display:flex;justify-content:space-between;color:#666;font-size:11px;margin-bottom:16px;">
         <span>50</span><span>5000</span>
+      </div>
+
+      <div id="emlPreflight" style="background:#0d0d1a;padding:12px;border-radius:8px;
+        margin-bottom:20px;border:1px solid #333;text-align:center;font-size:13px;">
       </div>
 
       <div style="display:flex;gap:10px;justify-content:flex-end;">
@@ -186,7 +196,23 @@ function showConfigModal(folders) {
 
     const slider = document.getElementById('emlSlider');
     const sliderValue = document.getElementById('emlSliderValue');
-    slider.addEventListener('input', () => { sliderValue.textContent = slider.value; });
+    const folderSelect = document.getElementById('emlFolderSelect');
+    const preflightDiv = document.getElementById('emlPreflight');
+
+    const updatePreflight = () => {
+      const folder = folders[folderSelect.value];
+      const perZip = parseInt(slider.value);
+      const total = folder.count;
+      const zipCount = Math.ceil(total / perZip);
+      preflightDiv.innerHTML = `${total} email &rarr; ${calcPreflight(total, perZip)}`;
+    };
+
+    slider.addEventListener('input', () => {
+      sliderValue.textContent = slider.value;
+      updatePreflight();
+    });
+    folderSelect.addEventListener('change', updatePreflight);
+    updatePreflight();
 
     document.getElementById('emlCancel').addEventListener('click', () => {
       overlay.remove();
@@ -249,8 +275,23 @@ function showConfigModal(folders) {
   const updateUI = (html) => { statusDiv.innerHTML = html; };
   updateUI(`<b>${folderName} Downloader</b><br>${totalItems} email trovate<br>Inizio...`);
 
-  let globalProcessed = 0, errors = 0;
-  const zip = new MiniZip();
+  const totalZips = Math.ceil(totalItems / emailsPerZip);
+  let globalProcessed = 0, errors = 0, zipPartNum = 0;
+  let currentZip = new MiniZip(), emailsInCurrentZip = 0;
+
+  const saveZip = (zip, partNum) => {
+    const data = zip.generate();
+    const blob = new Blob([data], { type: 'application/zip' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = totalZips > 1
+      ? `${folderName}_emails_part${String(partNum).padStart(2, '0')}.zip`
+      : `${folderName}_emails.zip`;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 5000);
+  };
 
   let skip = 0;
   while (skip < totalItems) {
@@ -273,7 +314,8 @@ function showConfigModal(folders) {
           const safeName = (msg.Subject || 'no_subject')
             .replace(/[^a-zA-Z0-9\u00C0-\u00FF _\-\.]/g, '_').substring(0, 80);
           const date = (msg.ReceivedDateTime || 'nodate').substring(0, 10);
-          zip.addFile(`${date}_${safeName}_${globalProcessed}.eml`, mimeData);
+          currentZip.addFile(`${date}_${safeName}_${globalProcessed}.eml`, mimeData);
+          emailsInCurrentZip++;
         } else { errors++; }
       } catch(e) { errors++; }
 
@@ -282,27 +324,26 @@ function showConfigModal(folders) {
         const pct = Math.round(globalProcessed / totalItems * 100);
         updateUI(`<b>${folderName} Downloader</b><br>` +
           `Scaricate: ${globalProcessed}/${totalItems} (${pct}%)<br>` +
-          `Errori: ${errors}<br>` +
+          `Errori: ${errors} | ZIP: ${zipPartNum + 1}/${totalZips}<br>` +
           `<progress value="${globalProcessed}" max="${totalItems}" style="width:100%"></progress>`);
+      }
+
+      if (emailsInCurrentZip >= emailsPerZip) {
+        zipPartNum++;
+        updateUI(`<b>Generazione ZIP ${zipPartNum}/${totalZips}...</b>`);
+        saveZip(currentZip, zipPartNum);
+        currentZip = new MiniZip();
+        emailsInCurrentZip = 0;
+        await new Promise(r => setTimeout(r, 1000));
       }
       await new Promise(r => setTimeout(r, DELAY_MS));
     }
     skip += API_BATCH_SIZE;
   }
 
-  // Genera e scarica un singolo ZIP
-  updateUI(`<b>Generazione ZIP...</b>`);
-  const data = zip.generate();
-  const blob = new Blob([data], { type: 'application/zip' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${folderName}_emails.zip`;
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 5000);
+  if (emailsInCurrentZip > 0) { zipPartNum++; saveZip(currentZip, zipPartNum); }
 
   updateUI(`<b>Download completato!</b><br>` +
-    `Email: ${globalProcessed} | Errori: ${errors}`);
-  console.log(`${folderName}: ${globalProcessed} email scaricate`);
+    `Email: ${globalProcessed} | Errori: ${errors} | ZIP: ${zipPartNum}`);
+  console.log(`${folderName}: ${globalProcessed} email in ${zipPartNum} ZIP`);
 })();
