@@ -154,13 +154,18 @@ function showConfigModal(folders) {
 
     const DEFAULT_EMAILS_PER_ZIP = 100;
 
+    const MAX_ZIP_FILES = 20;
+
     const calcPreflight = (totalEmails, perZip) => {
       const zipCount = Math.ceil(totalEmails / perZip);
+      if (zipCount > MAX_ZIP_FILES) return `<span style="color:#ff4444;">${zipCount} file ZIP (max ${MAX_ZIP_FILES})</span>`;
       if (zipCount <= 1) return `<span style="color:#00ff88;">1 file ZIP</span>`;
       return `<span style="color:#ffaa00;">${zipCount} file ZIP</span>`;
     };
 
-    const initMax = Math.max(folders[0]?.count || 100, 50);
+    const calcStep = (total) => Math.max(Math.round(total * 0.05), 1);
+    const initMax = Math.max(folders[0]?.count || 100, 1);
+    const initStep = calcStep(initMax);
 
     modal.innerHTML = `
       <h2 style="margin:0 0 20px;color:#00ff88;font-size:18px;">Outlook Email Downloader</h2>
@@ -175,10 +180,10 @@ function showConfigModal(folders) {
       <label style="display:block;margin-bottom:6px;color:#aaa;">
         Email per ZIP: <span id="emlSliderValue" style="color:#00ff88;">${DEFAULT_EMAILS_PER_ZIP}</span>
       </label>
-      <input type="range" id="emlSlider" min="50" max="${initMax}" step="50" value="${Math.min(DEFAULT_EMAILS_PER_ZIP, initMax)}"
+      <input type="range" id="emlSlider" min="1" max="${initMax}" step="${initStep}" value="${Math.min(DEFAULT_EMAILS_PER_ZIP, initMax)}"
         style="width:100%;margin-bottom:4px;accent-color:#00ff88;">
       <div style="display:flex;justify-content:space-between;color:#666;font-size:11px;margin-bottom:16px;">
-        <span>50</span><span id="emlSliderMax">${initMax}</span>
+        <span>1</span><span id="emlSliderMax">${initMax}</span>
       </div>
 
       <div id="emlPreflight" style="background:#0d0d1a;padding:12px;border-radius:8px;
@@ -213,8 +218,10 @@ function showConfigModal(folders) {
 
     const updateSliderMax = () => {
       const folder = folders[folderSelect.value];
-      const newMax = Math.max(folder.count, 50);
+      const newMax = Math.max(folder.count, 1);
+      const newStep = calcStep(newMax);
       slider.max = newMax;
+      slider.step = newStep;
       sliderMaxLabel.textContent = newMax;
       if (parseInt(slider.value) > newMax) {
         slider.value = newMax;
@@ -241,6 +248,11 @@ function showConfigModal(folders) {
     document.getElementById('emlStart').addEventListener('click', () => {
       const selectedFolder = folders[document.getElementById('emlFolderSelect').value];
       const emailsPerZip = parseInt(slider.value);
+      const zipCount = Math.ceil(selectedFolder.count / emailsPerZip);
+      if (zipCount > MAX_ZIP_FILES) {
+        preflightDiv.innerHTML = `<span style="color:#ff4444;">Troppi ZIP (${zipCount}). Massimo ${MAX_ZIP_FILES}. Aumenta il valore dello slider.</span>`;
+        return;
+      }
       overlay.remove();
       resolve({ folder: selectedFolder, emailsPerZip });
     });
