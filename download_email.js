@@ -160,6 +160,8 @@ function showConfigModal(folders) {
       return `<span style="color:#ffaa00;">${zipCount} file ZIP</span>`;
     };
 
+    const initMax = Math.max(folders[0]?.count || 100, 50);
+
     modal.innerHTML = `
       <h2 style="margin:0 0 20px;color:#00ff88;font-size:18px;">Outlook Email Downloader</h2>
 
@@ -173,10 +175,10 @@ function showConfigModal(folders) {
       <label style="display:block;margin-bottom:6px;color:#aaa;">
         Email per ZIP: <span id="emlSliderValue" style="color:#00ff88;">${DEFAULT_EMAILS_PER_ZIP}</span>
       </label>
-      <input type="range" id="emlSlider" min="50" max="5000" step="50" value="${DEFAULT_EMAILS_PER_ZIP}"
+      <input type="range" id="emlSlider" min="50" max="${initMax}" step="50" value="${Math.min(DEFAULT_EMAILS_PER_ZIP, initMax)}"
         style="width:100%;margin-bottom:4px;accent-color:#00ff88;">
       <div style="display:flex;justify-content:space-between;color:#666;font-size:11px;margin-bottom:16px;">
-        <span>50</span><span>5000</span>
+        <span>50</span><span id="emlSliderMax">${initMax}</span>
       </div>
 
       <div id="emlPreflight" style="background:#0d0d1a;padding:12px;border-radius:8px;
@@ -207,11 +209,27 @@ function showConfigModal(folders) {
       preflightDiv.innerHTML = `${total} email &rarr; ${calcPreflight(total, perZip)}`;
     };
 
+    const sliderMaxLabel = document.getElementById('emlSliderMax');
+
+    const updateSliderMax = () => {
+      const folder = folders[folderSelect.value];
+      const newMax = Math.max(folder.count, 50);
+      slider.max = newMax;
+      sliderMaxLabel.textContent = newMax;
+      if (parseInt(slider.value) > newMax) {
+        slider.value = newMax;
+        sliderValue.textContent = newMax;
+      }
+    };
+
     slider.addEventListener('input', () => {
       sliderValue.textContent = slider.value;
       updatePreflight();
     });
-    folderSelect.addEventListener('change', updatePreflight);
+    folderSelect.addEventListener('change', () => {
+      updateSliderMax();
+      updatePreflight();
+    });
     updatePreflight();
 
     document.getElementById('emlCancel').addEventListener('click', () => {
